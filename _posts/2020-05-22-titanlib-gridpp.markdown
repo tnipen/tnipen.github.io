@@ -68,6 +68,18 @@ observation will affect the adjustment of the background.
 h = 10000
 v = 200
 structure = gridpp.BarnesStructure(h, v)
+{% endhighlight %}
+
+When OI processes a gridpoint, it needs to invert a matrix containing all the observations. In areas where
+the observation network is dense, this matrix can be come large and will result in large computation times.
+However, in most cases reducing the number of observations doesn't negatively impact the accuracy of the
+analysis. We can set this using the `max_points` argument:
+
+{% highlight python %}
 max_points = 10
+{% endhighlight %}
+
+Now we have defined all the required inputs and we can create a gridded analysis:
+{% highlight python %}
 output = gridpp.optimal_interpolation(grid, ivalues, points, obs, variance_ratios, pbackground, max_points)
 {% endhighlight %}
