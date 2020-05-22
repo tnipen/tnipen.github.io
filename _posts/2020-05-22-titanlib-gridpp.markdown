@@ -5,22 +5,40 @@ date:   2020-05-22 15:58:36 +0200
 tags: optimal_interpolation quality_control
 ---
 
-This tutorial shows how to integrate observations with an NWP background field using python. First install
-[titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp):
+This tutorial shows how to integrate observations with an NWP background field using python.
+
+# Set up
+First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp):
 
 {% highlight bash %}
 pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
+Next, [download](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) the observations file.
+
 # Quality control
 
-Next, perform some quality control (QC) checks:
+The first step is to remove faulty observations. We will use the titan library for this. We will use the
+spatial consistency test.
 
 {% highlight python %}
 import titanlib
 
-titanlib.sct()
+# Observations
+with netCDF4.Dataset('obs.nc', 'r') as file:
+    obs_lats = file.variables['latitude'][:]
+    obs_lons = file.variables['longitude'][:]
+    obs_elevs = file.variables['altitude'][:]
+    obs = file.variables['air_temperature_2m'][:]
+
+flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, minnumobs, maxnumobs, inner_radius, outer_radius, niterations, nminprof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
+
+index_valid_obs = np.where(flags == 0)[0]
+obs_lats = obs_lats[index_valid_obs]
+obs_lons = obs_lons[index_valid_obs]
+obs_elevs = obs_elevs[index_valid_obs]
+obs = obs[index_valid_obs]
 {% endhighlight %}
 
 # Surface analysis
