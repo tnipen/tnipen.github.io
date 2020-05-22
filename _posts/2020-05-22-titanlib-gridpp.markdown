@@ -59,10 +59,15 @@ with netCDF4.Dataset('analysis.nc', 'r') as file:
 points = gridpp.points(obs_lats, obs_lons, obs_elevs)
 variance_ratios = 0.1 * np.ones(points.size())
 pbackground = gridpp.bilinear(grid, points, background)
+{% endhighlight %}
+
+Optimal interpolation needs a structure function. We will use a Barnes function, with a horizontal
+decorrelation length of 10 km and a vertical decorrelation length of 200 m. This sets the limits to how far an
+observation will affect the adjustment of the background.
+{% highlight python %}
 h = 10000
 v = 200
 structure = gridpp.BarnesStructure(h, v)
 max_points = 10
 output = gridpp.optimal_interpolation(grid, ivalues, points, obs, variance_ratios, pbackground, max_points)
 {% endhighlight %}
-
