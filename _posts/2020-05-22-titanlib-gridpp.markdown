@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Using titanlib and gridpp to produce surface analyses"
+title:  "Surface analyses with titanlib and gridpp"
 date:   2020-05-22 15:58:36 +0200
 categories: jekyll update
 ---
