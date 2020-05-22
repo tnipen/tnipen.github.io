@@ -13,12 +13,19 @@ pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
+# Quality control
+
 Next, perform some quality control (QC) checks:
 
 {% highlight python %}
 import titanlib
-import gridpp
-
 
 titanlib.sct()
 {% endhighlight %}
+
+# Surface analysis
+
+{% highlight python %}
+import gridpp
+{% endhighlight %}
+
