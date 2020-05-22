@@ -2,7 +2,7 @@
 layout: post
 title:  "Surface analyses with titanlib and gridpp"
 date:   2020-05-22 15:58:36 +0200
-categories: jekyll update
+tags: optimal_interpolation quality_control
 ---
 
 This tutorial shows how to integrate observations with an NWP background field using python. First install
