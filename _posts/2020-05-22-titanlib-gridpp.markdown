@@ -6,7 +6,7 @@ categories: jekyll update
 ---
 
 This tutorial shows how to integrate observations with an NWP background field using python. First install
-[titanlib][https://github.com/metno/titanlib] and [gridpp][https://github.com/metno/gridpp]:
+[titanlib]: https://github.com/metno/titanlib and [gridpp]: https://github.com/metno/gridpp:
 
 {% highlight bash %}
 pip3 install titanlib
