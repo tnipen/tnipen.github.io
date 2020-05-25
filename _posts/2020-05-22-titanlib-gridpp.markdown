@@ -5,7 +5,14 @@ date:   2020-05-22 15:58:36 +0200
 tags: optimal_interpolation quality_control
 ---
 
-This tutorial shows how to integrate observations with an NWP background field using python.
+MET-Norway constructs a gridded analysis every hour based on an NWP background and all observations we can
+get a hold on. This includes conventional weather stations, but also an emerging source of observations:
+citizen weather stations. Specifically, we use observations from [Netatmo](https://netatmo.com)'s network of weather stations.
+
+To help create gridded analyses, MET-Norway has built two software packages: titanlib and gridpp. Titanlib is
+a quality control package that can flag suspicious observations and gridpp is a post-processing package that
+can, among other things, assimilate observations into a gridded background field from NWP models. This
+tutorial shows how to integrate observations with an NWP background field using python.
 
 # Set up
 First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp):
