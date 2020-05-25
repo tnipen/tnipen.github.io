@@ -97,7 +97,7 @@ max_points = 10
 
 Now we have defined all the required inputs and we can create a gridded analysis:
 {% highlight python %}
-output = gridpp.optimal_interpolation(bgrid, background, points, obs, variance_ratios, pbackground, structure, max_points)
+analysis = gridpp.optimal_interpolation(bgrid, background, points, obs, variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
 ## Plotting the result
@@ -116,3 +116,21 @@ mpl.show()
 {% endhighlight %}
 
 ![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
+
+## Ensemble OI
+
+
+{% highlight python %}
+with netCDF4.Dataset('analysis.nc', 'r') as file:
+    background_ens = np.moveaxis(file.variables['air_temperature_2m'][0, 0, :, :, :], 0, 2)
+
+num_members = background_ens.shape[2]
+pbackground_ens = np.zeros([points.size(), num_members])
+for e in range(num_members):
+    pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens[:, :, e])
+psigmas = 0.5 * np.ones(points.size())
+analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens, points, obs, psigmas,
+        pbackground_ens, structure, max_points)
+{% endhighlight %}
+
+![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
