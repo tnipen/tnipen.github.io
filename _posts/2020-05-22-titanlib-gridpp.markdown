@@ -32,6 +32,7 @@ spatial consistency test.
 
 {% highlight python %}
 import titanlib
+import netCDF4
 
 # Load observations and metadata from file
 with netCDF4.Dataset('obs.nc', 'r') as file:
@@ -48,10 +49,7 @@ QC and `1` for those that are flagged. We will only keep the non-flagged observa
 
 {% highlight python %}
 index_valid_obs = np.where(flags == 0)[0]
-obs_lats = obs_lats[index_valid_obs]
-obs_lons = obs_lons[index_valid_obs]
-obs_elevs = obs_elevs[index_valid_obs]
-obs = obs[index_valid_obs]
+index_invalid_obs = np.where(flags != 0)[0]
 {% endhighlight %}
 
 # Surface analysis
@@ -61,7 +59,6 @@ member. We will take the control member, which has index 0 in the background fil
 
 {% highlight python %}
 import gridpp
-import netCDF4
 import numpy as np
 
 with netCDF4.Dataset('analysis.nc', 'r') as file:
@@ -72,7 +69,7 @@ with netCDF4.Dataset('analysis.nc', 'r') as file:
     bgrid = gridpp.Grid(blats, blons, belevs)
     background = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
 
-points = gridpp.points(obs_lats, obs_lons, obs_elevs)
+points = gridpp.points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
 variance_ratios = 0.1 * np.ones(points.size())
 pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
@@ -98,7 +95,7 @@ max_points = 10
 Now we have defined all the required inputs and we can create a gridded analysis:
 {% highlight python %}
 analysis = gridpp.optimal_interpolation(bgrid, background, points,
-        obs, variance_ratios, pbackground, structure, max_points)
+        obs[index_valid_obs], variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
 # Plotting the result
@@ -109,7 +106,8 @@ import matplotlib.pylab as mpl
 
 diff = analysis - background
 mpl.pcolormesh(blons, blats, diff, cmap="RdBu_r", vmin=-2, vmax=2)
-mpl.plot(obs_lons, obs_lats, 'ko', mfc="w", ms=4)
+mpl.plot(obs_lons[index_valid_obs], obs_lats[index_valid_obs], 'ko', mfc="w", ms=4)
+mpl.plot(obs_lons[index_invalid_obs], obs_lats[index_invalid_obs], 'kx', ms=4)
 mpl.xlim(0, 35)
 mpl.ylim(55, 75)
 mpl.gca().set_aspect(2)
@@ -136,12 +134,15 @@ for e in range(num_members):
 psigmas = 0.5 * np.ones(points.size())
 
 analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens,
-        points, obs, psigmas, pbackground_ens, structure, max_points)
+        points, obs[index_valid_obs], psigmas, pbackground_ens, structure, max_points)
 {% endhighlight %}
 
 ![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
 
 # References
+
+Barnes, S. L., 1973: Mesoscale objective map analysis using weighted time-series observations. NOAA Tech.
+Memo. ERL NSSL-62 [NTIS COM-73-10781], March, National Severe Storms Laboratory, Norman, Oklahoma, 60 pp.
 
 Lussana, C, Seierstad, IA, Nipen, TN, Cantarello, L. Spatial interpolation of two‐metre temperature over
 Norway based on the combination of numerical weather prediction ensembles and in situ observations. Q J R
