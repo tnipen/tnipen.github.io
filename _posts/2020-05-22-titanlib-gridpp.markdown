@@ -22,9 +22,10 @@ pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
-Next, [download](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) the observations file.
+You will also need two test files, an [observation file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) and a [gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which is a single timestep from an NWP ensemble run.
 
-# Quality control
+
+# Quality control of observations
 
 The first step is to remove faulty observations. We will use the titan library for this. We will use the
 spatial consistency test.
@@ -32,7 +33,7 @@ spatial consistency test.
 {% highlight python %}
 import titanlib
 
-# Observations
+# Load observations and metadata from file
 with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_lats = file.variables['latitude'][:]
     obs_lons = file.variables['longitude'][:]
@@ -40,7 +41,12 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs = file.variables['air_temperature_2m'][:]
 
 flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, minnumobs, maxnumobs, inner_radius, outer_radius, niterations, nminprof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
+{% endhighlight %}
 
+The `flags` array has the same length as the observations and has a `0` denoting observations that passed the
+QC and `1` for those that are flagged. We will only keep the non-flagged observations in the next step:
+
+{% highlight python %}
 index_valid_obs = np.where(flags == 0)[0]
 obs_lats = obs_lats[index_valid_obs]
 obs_lons = obs_lons[index_valid_obs]
@@ -50,7 +56,8 @@ obs = obs[index_valid_obs]
 
 # Surface analysis
 
-For this you need NWP output. [Download](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc) the ensemble analysis file.
+This tutorial will only run the deterministic optimal interpolation scheme, which needs a single ensemble
+member. We will take the control member, which has index 0 in the background file.
 
 {% highlight python %}
 import gridpp
@@ -58,11 +65,12 @@ import netCDF4
 import numpy as np
 
 with netCDF4.Dataset('analysis.nc', 'r') as file:
+    index_control = 0
     blats = file.variables['latitude'][:]
     blons = file.variables['longitude'][:]
-    belevs = file.variables['surface_geopotential'][0, 0, 0, :, :] / 9.81
+    belevs = file.variables['surface_geopotential'][0, 0, index_control, :, :] / 9.81
     bgrid = gridpp.Grid(blats, blons, belevs)
-    background = file.variables['air_temperature_2m'][0, 0, 0, :, :]
+    background = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
 
 points = gridpp.points(obs_lats, obs_lons, obs_elevs)
 variance_ratios = 0.1 * np.ones(points.size())
