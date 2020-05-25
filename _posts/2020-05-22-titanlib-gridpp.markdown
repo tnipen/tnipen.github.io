@@ -14,7 +14,7 @@ a quality control package that can flag suspicious observations and gridpp is a 
 can, among other things, assimilate observations into a gridded background field from NWP models. This
 tutorial shows how to integrate observations with an NWP background field using python.
 
-# Set up
+## Set up
 First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp):
 
 {% highlight bash %}
@@ -25,7 +25,7 @@ pip3 install gridpp
 You will also need two test files, an [observation file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) and a [gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which is a single timestep from an NWP ensemble run.
 
 
-# Quality control of observations
+## Quality control of observations
 
 The first step is to remove faulty observations. We will use the titan library for this. We will use the
 spatial consistency test.
@@ -52,7 +52,7 @@ index_valid_obs = np.where(flags == 0)[0]
 index_invalid_obs = np.where(flags != 0)[0]
 {% endhighlight %}
 
-# Surface analysis
+## Surface analysis
 
 This tutorial will only run the deterministic optimal interpolation scheme, which needs a single ensemble
 member. We will take the control member, which has index 0 in the background file.
@@ -107,7 +107,7 @@ analysis = gridpp.optimal_interpolation(bgrid, background, points,
         obs[index_valid_obs], variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
-# Plotting the result
+## Plotting the result
 
 Finally, we can plot the analysis increments:
 {% highlight python %}
@@ -125,7 +125,7 @@ mpl.show()
 
 ![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
 
-# Ensemble mode
+## Ensemble mode
 
 Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al. 2019) scheme that takes
 uses spatial structure information from an ensemble of NWP model runs. This is the method used in the
@@ -152,7 +152,7 @@ diff = (analysis_ens - background_ens)[:, :, index_control]
 
 ![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
 
-# References
+## References
 
 Barnes, S. L., 1973: Mesoscale objective map analysis using weighted time-series observations. NOAA Tech.
 Memo. ERL NSSL-62 [NTIS COM-73-10781], March, National Severe Storms Laboratory, Norman, Oklahoma, 60 pp.
