@@ -97,10 +97,11 @@ max_points = 10
 
 Now we have defined all the required inputs and we can create a gridded analysis:
 {% highlight python %}
-analysis = gridpp.optimal_interpolation(bgrid, background, points, obs, variance_ratios, pbackground, structure, max_points)
+analysis = gridpp.optimal_interpolation(bgrid, background, points,
+        obs, variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
-## Plotting the result
+# Plotting the result
 
 Finally, we can plot the analysis increments:
 {% highlight python %}
@@ -117,8 +118,11 @@ mpl.show()
 
 ![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
 
-## Ensemble OI
+# Ensemble mode
 
+Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al 2019) scheme that takes
+uses spatial structure information from an ensemble of NWP model runs. To test this, you need to load the
+full ensemble:
 
 {% highlight python %}
 with netCDF4.Dataset('analysis.nc', 'r') as file:
@@ -128,9 +132,21 @@ num_members = background_ens.shape[2]
 pbackground_ens = np.zeros([points.size(), num_members])
 for e in range(num_members):
     pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens[:, :, e])
+
 psigmas = 0.5 * np.ones(points.size())
-analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens, points, obs, psigmas,
-        pbackground_ens, structure, max_points)
+
+analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens,
+        points, obs, psigmas, pbackground_ens, structure, max_points)
 {% endhighlight %}
 
 ![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
+
+# References
+
+Lussana, C, Seierstad, IA, Nipen, TN, Cantarello, L. Spatial interpolation of two‐metre temperature over
+Norway based on the combination of numerical weather prediction ensembles and in situ observations. Q J R
+Meteorol Soc. 2019; 145: 3626– 3643 ([link](https://rmets.onlinelibrary.wiley.com/doi/full/10.1002/qj.3646))
+
+Nipen, T.N., I.A. Seierstad, C. Lussana, J. Kristiansen, and Ø. Hov, 2020: Adopting Citizen Observations in
+Operational Weather Prediction. Bull. Amer. Meteor. Soc., 101, E43–E57
+([link](https://journals.ametsoc.org/doi/full/10.1175/BAMS-D-18-0237.1))
