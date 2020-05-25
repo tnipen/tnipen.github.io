@@ -53,8 +53,9 @@ import numpy as np
 with netCDF4.Dataset('analysis.nc', 'r') as file:
     blats = file.variables['latitude'][:]
     blons = file.variables['longitude'][:]
-    bgrid = gridpp.Grid(lats, lons)
-    background = np.moveaxis(np.squeeze(file.variables['air_temperature_2m'][:]), 0, 2)
+    belevs = file.variables['surface_geopotential'][0, 0, 0, :, :] / 9.81
+    bgrid = gridpp.Grid(blats, blons, belevs)
+    background = file.variables['air_temperature_2m'][0, 0, 0, :, :]
 
 points = gridpp.points(obs_lats, obs_lons, obs_elevs)
 variance_ratios = 0.1 * np.ones(points.size())
@@ -62,10 +63,10 @@ pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
 
 Optimal interpolation needs a structure function. We will use a Barnes function, with a horizontal
-decorrelation length of 10 km and a vertical decorrelation length of 200 m. This sets the limits to how far an
+decorrelation length of 100 km and a vertical decorrelation length of 200 m. This sets the limits to how far an
 observation will affect the adjustment of the background.
 {% highlight python %}
-h = 10000
+h = 100000
 v = 200
 structure = gridpp.BarnesStructure(h, v)
 {% endhighlight %}
@@ -81,5 +82,20 @@ max_points = 10
 
 Now we have defined all the required inputs and we can create a gridded analysis:
 {% highlight python %}
-output = gridpp.optimal_interpolation(grid, ivalues, points, obs, variance_ratios, pbackground, max_points)
+output = gridpp.optimal_interpolation(bgrid, background, points, obs, variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
+
+Finally, we can plot the analysis increments:
+{% highlight python %}
+import matplotlib.pylab as mpl
+
+diff = analysis - background
+mpl.pcolormesh(blons, blats, diff, cmap="RdBu_r", vmin=-2, vmax=2)
+mpl.plot(obs_lons, obs_lats, 'ko', mfc="w", ms=4)
+mpl.xlim(0, 35)
+mpl.ylim(55, 75)
+mpl.gca().set_aspect(2)
+mpl.show()
+{% endhighlight %}
+
+![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
