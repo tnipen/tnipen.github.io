@@ -70,6 +70,15 @@ with netCDF4.Dataset('analysis.nc', 'r') as file:
     background = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
 
 points = gridpp.points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
+{% endhighlight %}
+
+Optimal interpolation does not require you to specify the error variance of the background and the
+observations. Instead, only their ratios is needed. Since we trust observations more than the background, we
+set the ratio to 0.1. OI also requires the background values at the observation points. In many cases a
+simple method like nearest neighbour or bilinear is sufficient, however the gridpp functions allows you to
+calculate any values if desired.
+
+{% highlight python %}
 variance_ratios = 0.1 * np.ones(points.size())
 pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
@@ -120,11 +129,13 @@ mpl.show()
 
 Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al 2019) scheme that takes
 uses spatial structure information from an ensemble of NWP model runs. To test this, you need to load the
-full ensemble:
+full ensemble and ensure that the ensemble dimension is at the end. Also note that EnSI requires the
+specification of the observation variance (`psigmas`).
 
 {% highlight python %}
 with netCDF4.Dataset('analysis.nc', 'r') as file:
-    background_ens = np.moveaxis(file.variables['air_temperature_2m'][0, 0, :, :, :], 0, 2)
+    background_ens = file.variables['air_temperature_2m'][0, 0, :, :, :]
+    background_ens = np.moveaxis(background_ens, 0, 2)
 
 num_members = background_ens.shape[2]
 pbackground_ens = np.zeros([points.size(), num_members])
@@ -133,8 +144,9 @@ for e in range(num_members):
 
 psigmas = 0.5 * np.ones(points.size())
 
-analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens,
-        points, obs[index_valid_obs], psigmas, pbackground_ens, structure, max_points)
+analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens, points,
+        obs[index_valid_obs], psigmas, pbackground_ens, structure, max_points)
+diff = (analysis_ens - background_ens)[:, :, index_control]
 {% endhighlight %}
 
 ![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
