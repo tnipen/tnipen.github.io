@@ -168,7 +168,7 @@
  * Page content
  */
 .page-content {
-    padding: $spacing-unit 0;
+    /* padding: $spacing-unit 0; */
 }
 
 .page-heading {
@@ -201,6 +201,7 @@
  */
 .post-header {
     margin-bottom: $spacing-unit;
+    padding-top: $spacing-unit;
 }
 
 .post-title {

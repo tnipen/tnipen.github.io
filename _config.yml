@@ -10,7 +10,7 @@ title: Post-processing
 email: thomasn@met.no
 description: > # this means to ignore newlines until "baseurl:"
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://tnipen.github.io" # the base hostname & protocol for your site
+url: "https://tnipen.github.io" # the base hostname & protocol for your site
 github_username:  tnipen
 
 # Build settings

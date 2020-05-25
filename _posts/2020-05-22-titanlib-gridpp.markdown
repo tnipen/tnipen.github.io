@@ -22,13 +22,13 @@ pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
-You will also need two test files, an [observation file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) and a [gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which is a single timestep from an NWP ensemble run.
+You will also need two test files, an [observation file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) and a [gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which contains a single timestep from a 10-member ensemble NWP run.
 
 
 ## Quality control of observations
 
-The first step is to remove faulty observations. We will use the titan library for this. We will use the
-spatial consistency test.
+The first step is to remove faulty observations using the titan library. Titanlib supports a variety of
+quality control methods, but we will use the spatial consistency test.
 
 {% highlight python %}
 import titanlib
