@@ -127,9 +127,10 @@ mpl.show()
 
 # Ensemble mode
 
-Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al 2019) scheme that takes
-uses spatial structure information from an ensemble of NWP model runs. To test this, you need to load the
-full ensemble and ensure that the ensemble dimension is at the end. Also note that EnSI requires the
+Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al. 2019) scheme that takes
+uses spatial structure information from an ensemble of NWP model runs. This is the method used in the
+operational temperature analyses used on Yr.no, as described by Nipen et al. 2020. To test this, you need to
+load the full ensemble and ensure that the ensemble dimension is at the end. Also note that EnSI requires the
 specification of the observation variance (`psigmas`).
 
 {% highlight python %}
