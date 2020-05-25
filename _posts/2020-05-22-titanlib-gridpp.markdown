@@ -85,6 +85,8 @@ Now we have defined all the required inputs and we can create a gridded analysis
 output = gridpp.optimal_interpolation(bgrid, background, points, obs, variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
+## Plotting the result
+
 Finally, we can plot the analysis increments:
 {% highlight python %}
 import matplotlib.pylab as mpl
