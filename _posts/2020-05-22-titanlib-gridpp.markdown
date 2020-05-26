@@ -27,8 +27,8 @@ You will also need two test files, an [observation file](https://thredds.met.no/
 
 ## Quality control of observations
 
-The first step is to remove faulty observations using the titan library. Titanlib supports a variety of
-quality control methods, but we will use the spatial consistency test.
+Let's start by reading observations and their station's metadata from file:
+The first step is to remove faulty observations using the titan library.
 
 {% highlight python %}
 import titanlib
@@ -40,6 +40,26 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_lons = file.variables['longitude'][:]
     obs_elevs = file.variables['altitude'][:]
     obs = file.variables['air_temperature_2m'][:]
+{% endhighlight %}
+
+Titanlib supports a variety of quality control methods, but we will use the spatial consistency test (SCT).
+The SCT has a number of parameters, such as a radius (`inner_radius`); a minimum number of observations
+required within the radius to perform the test (`minnumobs`); a maximum number of observations (`maxnumobs`),
+which means the closest observations will be used if the number of available observations exceeds
+this number; the number of iterations to run the test (`niterations`).
+{% highlight python %}
+inner_radius = 100000
+minnumobs = 5
+maxnumobs = 20
+outer_radius = 100000
+niterations = 1
+nminprof = 20
+dzmin = 100
+dhmin = 10000
+dz = 200
+t2pos = [4]
+t2neg = [4]
+eps2 = [0.5]
 
 flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, minnumobs, maxnumobs, inner_radius, outer_radius, niterations, nminprof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
 {% endhighlight %}
@@ -52,10 +72,30 @@ index_valid_obs = np.where(flags == 0)[0]
 index_invalid_obs = np.where(flags != 0)[0]
 {% endhighlight %}
 
+Let's plot the observations, marking flagged ones with a black edge:
+
+{% highlight python %}
+import matplotlib.pylab as mpl
+mpl.scatter(obs_lons[index_valid_obs], obs_lats[index_valid_obs],
+        c=obs[index_valid_obs] - 273.15, s=20, cmap="RdBu_r")
+mpl.scatter(obs_lons[index_invalid_obs], obs_lats[index_invalid_obs],
+        c=obs[index_invalid_obs] - 273.15, s=20, edgecolors="k", cmap="RdBu_r")
+mpl.xlim(0, 35)
+mpl.ylim(55, 75)
+mpl.gca().set_aspect(2)
+cb = mpl.colorbar()
+cb.set_label(r"Temperature ($\degree C$)")
+mpl.show()
+{% endhighlight %}
+
+The SCT has identified one fault observation in the southern part of the domain:
+![Result of the quality control]({{ site.url }}/assets/img/titan_sct.png)
+
 ## Surface analysis
 
-This tutorial will only run the deterministic optimal interpolation scheme, which needs a single ensemble
-member. We will take the control member, which has index 0 in the background file.
+Once we have a set of trustworth observations, we can assimilate those into the NWP background. We will first
+use the deterministic optimal interpolation scheme, which takes a single ensemble member. We will take the
+control member, which has index 0 in the background file.
 
 {% highlight python %}
 import gridpp
@@ -115,8 +155,6 @@ import matplotlib.pylab as mpl
 
 diff = analysis - background
 mpl.pcolormesh(blons, blats, diff, cmap="RdBu_r", vmin=-2, vmax=2)
-mpl.plot(obs_lons[index_valid_obs], obs_lats[index_valid_obs], 'ko', mfc="w", ms=4)
-mpl.plot(obs_lons[index_invalid_obs], obs_lats[index_invalid_obs], 'kx', ms=4)
 mpl.xlim(0, 35)
 mpl.ylim(55, 75)
 mpl.gca().set_aspect(2)
