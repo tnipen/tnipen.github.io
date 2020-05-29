@@ -1,63 +1,103 @@
 ---
 layout: post
-title:  "Using Netatmo measurements in weather forecasting"
+title:  "Using Netatmo in weather forecasting"
 date:   2020-05-29 15:58:36 +0200
 author: Thomas Nipen (thomasn@met.no)
 tags: netatmo optimal_interpolation quality_control
 ---
 
-Networks of personal weather stations have grown immensely and now represent a major source of weather
-observations. MET-Norway has since 2018 used [Netatmo](https://netatmo.com)'s network of observations in
-correcting temperature forecasts on Yr (https://www.yr.no). The weather forecasts on Yr, are based on a
-sophisticated weather model. However, in many cases, the model output deviates significantly from the observed
-weather. Netatmo observations are used to correct these forecasts.
+Networks of personal weather stations are growning immensely in size and now represent a major source of
+weather information. MET-Norway has since 2018 used [Netatmo](https://netatmo.com)'s network of observations
+in correcting temperature forecasts on Yr ([www.yr.no](https://www.yr.no)). Although the weather forecasts on
+Yr are based on a sophisticated weather models, there are many cases where the model deviates significantly
+from the observed weather. Netatmo observations are important to correct these errors. And since there is
+bound to be a Netatmo station nearby, the forecasts can be corrected almost anywhere.
 
-In this post, we will shown how to do this using two open source software packages titanlib and gridpp.
-Titanlib is used to remove observations that are likely to be invalid, whereas gridpp creates a gridded
-temperature field representing the current conditions. Both libraries are written in C++, but they have python
-interfaces, which will be used here.
+In this post, we will shown how to use temperature measurements from Netatmos network by using two open
+source software packages: titanlib and gridpp. **Titanlib** is used to remove observations that are likely to be
+invalid, whereas **gridpp** creates a gridded temperature field representing the current conditions. Both
+libraries are written in C++, but they have python interfaces, which will be used here.
 
 ## Getting started
-First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp),
-which if you already have their dependencies could be as easy as:
+First, install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp),
+which could be as easy as running:
 
 {% highlight bash %}
 pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
-You will also need to download two test files in NetCDF format: a [file containing
+... if you already have their non-python dependencies. If not, check out their respective webpages for
+installation instructions.
+
+For this tutorial, you also need to download two test files in NetCDF format: a [file containing
 observations](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); and a [file
 containing weather model
-output](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc).
+output](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/model.nc).
 
-## Quality control of observations
+The code below can also be [downloaded](TOOD).
 
-Most of Netatmo's weather stations have reliable measurements, however occasionally stations are located in
-directy sunlight or too close to buildings. These must be filtered out. Let's start by reading observations
-and their station's metadata from file:
+## Quality control using Titanlib
+
+Most of Netatmo's weather stations make reliable measurements, in fact, more than 80% are used in
+MET-Norway's operational temperature forecasts. However, occasionally stations that are exposed to direct
+sunlight or are located too close to buildings giving readings that are not representative of the area they
+are in. These must be filtered out. Titanlib was developed specifically for dense networks of amateur weather
+stations.
+
+Let's start by reading the observations and their station's metadata from the downloaded file:
 
 {% highlight python %}
 import titanlib
 import netCDF4
 
-with netCDF4.Dataset('obs.nc', 'r') as file:
-    obs_lats = file.variables['latitude'][:]
-    obs_lons = file.variables['longitude'][:]
-    obs_elevs = file.variables['altitude'][:]
-    obs = file.variables['air_temperature_2m'][:]
+file = netCDF4.Dataset('obs.nc', 'r')
+obs_lats = file.variables['latitude'][:]
+obs_lons = file.variables['longitude'][:]
+obs_elevs = file.variables['altitude'][:]
+obs = file.variables['air_temperature_2m'][:]
+file.close()
 {% endhighlight %}
 
-Titanlib supports a variety of quality control methods, but we will focus on the spatial consistency test
-(SCT) here. The SCT compares each observations to what is expected given the other observations in the nearby
-area. If the deviation is large, the observation is removed. The SCT has several parameters, which are
-described in detail on the [titanlib wiki](https://github.com/metno/titanlib/wiki/Spatial-consistency-test).
-For a given observation, all other observations within the `outer_radius` (in meters) will be used to compute
-a cross-validation value for the observation. For computational efficiency, the cross-validation results will
-be reused for all observations within the `inner_radius` such that the proceedure doesn't have to be
-performed independently for every observation. To further reduce computation time, only the `num_max` closest
-observations are used, even if there are more than this many observations within the outer radius. The test
-is only performed if there are at least `num_min` observations within the outer radius.
+The `obs` variable now contains the observations [in Kelvin] in a 1-D array, with `obs_lats`, `obs_lons`, and `obs_elevs`
+being corresponding 1-D arrays of the stations' latitudes [degrees], longitudes [degrees], and elevations
+[m], respectively.
+
+Titanlib supports a variety of quality control methods, but we will use the **buddy check**. the **spatial
+consistency test (SCT)** and the **isolation check**. The easiest way to run multiple checks in titanlib is
+to create a dataset object:
+
+{% highlight python %}
+dataset = gridpp.Dataset(obs_lats, obs_lons, obs_elevs, obs)
+{% endhighlight %}
+
+### The buddy check
+
+The buddy check can then we run on this dataset as follows:
+
+{% highlight python %}
+radius = 10000
+min_buddies = 10
+threshold = 2
+dataset.buddy_check(radius, min_buddies, threshold)
+{% endhighlight %}
+
+This check will flag observations in the dataset that deviate by more than 2 standard deviations compared to
+the average values of all observations within a 10 km radius. The test is only run if there are at least 10
+stations within this radius.
+
+# The Spatial Consistency Test
+
+The next check we will apply is the SCT, which compares each observations to what is expected given the other
+observations in the nearby area. If the deviation is large, the observation is removed. The SCT has several
+parameters, which are described in detail on the [titanlib
+wiki](https://github.com/metno/titanlib/wiki/Spatial-consistency-test).  For a given observation, all other
+observations within the `outer_radius` (in meters) will be used to compute a cross-validation value for the
+observation. For computational efficiency, the cross-validation results will be reused for all observations
+within the `inner_radius` such that the proceedure doesn't have to be performed independently for every
+observation. To further reduce computation time, only the `num_max` closest observations are used, even if
+there are more than this many observations within the outer radius. The test is only performed if there are
+at least `num_min` observations within the outer radius.
 
 Let's set up the parameters and run the test:
 
@@ -75,17 +115,31 @@ t2pos = np.full(len(obs), 4)
 t2neg = np.full(len(obs), 4)
 eps2 = np.full(len(obs), 0.5)
 
-flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, num_min, num_max, inner_radius, outer_radius, num_iterations, num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
+dataset.sct(num_min, num_max, inner_radius, outer_radius, num_iterations, num_min_prof, dzmin, dhmin, dz, t2pos, t2neg, eps2)
 {% endhighlight %}
 
-The `flags` array now has the same length as the input observations and uses a value of `0` denoting
-observations that passed the test and a value of `1` for those that are flagged. We will only keep the
-non-flagged observations in the next step:
+Finally, we use an isolation check to remove remote stations. We do this because when there are no nearby
+stations, there is no information to corroborate the measurement and therefore we cannot guarantee that the
+station has a valid measurement.
+
+{% highlight python %}
+radius = 15000
+num min= 5
+dz = 200
+dataset.isolation_check(num_min, radius, dz)
+{% endhighlight %}
+
+The final information about which observations passed are available in `dataset.flags`. This array
+has the same length as the input observations and uses `0` to denote observations that passed
+the test and `1` for those that are flagged as suspicious. We will only keep the non-flagged observations in
+the next step:
 
 {% highlight python %}
 index_valid_obs = np.where(flags == 0)[0]
 index_invalid_obs = np.where(flags != 0)[0]
 {% endhighlight %}
+
+## Plotting the quality control flags
 
 Let's plot the observations, marking flagged ones with a black edge:
 
@@ -107,30 +161,33 @@ The SCT has identified one fault observation in the southern part of the domain:
 
 ![Result of the quality control]({{ site.url }}/assets/img/titan_sct.png)
 
-## Creating the analysis
+## Correcting the weather model
 
-Once we have a set of trustworth observations, we can assimilate those into the NWP background. Gridpp
-provides a function that performs optimal interpolation (OI), which merges a background field and a set of
-observations, based on their relative accuracies. We will first use the deterministic OI scheme, which takes
-a single ensemble member. We will take the control member, which has index 0 in the background file.
+Once we have a set of trustworth observations, we can correct the output from the weather model. The model
+file contains a gridded forecasts for the current conditions on a 2.5 km by 2.5 km grid. Gridpp contains,
+among other things, functions for merging observations into gridded forecasts using optimal interpolation
+(OI). This method merges the two data sources, based on their relative accuracies: The observations are
+generally more accurate than the model output, and will therefore be weighted more heavily.
+
+Let's continue by reading the gridded model data from file:
 
 {% highlight python %}
 import gridpp
 import numpy as np
 
-with netCDF4.Dataset('analysis.nc', 'r') as file:
-    index_control = 0
-    blats = file.variables['latitude'][:]
-    blons = file.variables['longitude'][:]
-    belevs = file.variables['surface_geopotential'][0, 0, index_control, :, :] / 9.81
-    bgrid = gridpp.Grid(blats, blons, belevs)
-    background = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
+file = netCDF4.Dataset('model.nc', 'r')
+blats = file.variables['latitude'][:]
+blons = file.variables['longitude'][:]
+belevs = file.variables['surface_geopotential'][0, :, :] / 9.81
+bgrid = gridpp.Grid(blats, blons, belevs)
+background = file.variables['air_temperature_2m'][0, :, :]
+file.close()
 
 points = gridpp.points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
 {% endhighlight %}
 
-OI does not require you to specify the error variance of the background and the observations. Instead, only
-their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1. OI
+OI has a number of tuning parameters. The first one is the ratio of the error variance of the observations to
+the model. Since we trust observations more than the background, we set the ratio to 0.1. OI
 also requires the background values at the observation points. In many cases a simple method like nearest
 neighbour or bilinear is sufficient, however the gridpp functions allows you to calculate any values if
 desired.
@@ -179,33 +236,6 @@ mpl.show()
 {% endhighlight %}
 
 ![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
-
-## Ensemble mode
-
-Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al. 2019) scheme that takes
-uses spatial structure information from an ensemble of NWP model runs. This is the method used in the
-operational temperature analyses used on Yr.no, as described by Nipen et al. 2020. To test this, you need to
-load the full ensemble and ensure that the ensemble dimension is at the end. Also note that EnSI requires the
-specification of the observation variance (`psigmas`).
-
-{% highlight python %}
-with netCDF4.Dataset('analysis.nc', 'r') as file:
-    background_ens = file.variables['air_temperature_2m'][0, 0, :, :, :]
-    background_ens = np.moveaxis(background_ens, 0, 2)
-
-num_members = background_ens.shape[2]
-pbackground_ens = np.zeros([points.size(), num_members])
-for e in range(num_members):
-    pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens[:, :, e])
-
-psigmas = 0.5 * np.ones(points.size())
-
-analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens, points,
-        obs[index_valid_obs], psigmas, pbackground_ens, structure, max_points)
-diff = (analysis_ens - background_ens)[:, :, index_control]
-{% endhighlight %}
-
-![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
 
 ## References
 
