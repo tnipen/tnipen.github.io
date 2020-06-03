@@ -30,12 +30,12 @@ pip3 install gridpp
 ... if you already have their non-python dependencies. If not, check out their respective webpages for
 installation instructions.
 
-For this tutorial, you also need to download two test files in NetCDF format: a [file containing
-observations](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); and a [file
-containing weather model
-output](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/model.nc).
+For this tutorial, you also need to download [weather model output in NetCDF
+format](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/model.nc) and [Netatmo
+observations in JSON format]({{ site.utl }}/assets/img/netatmo.json). The Netatmo observations were retrived
+from their [open API](https://dev.netatmo.com/).
 
-The code below can also be [downloaded](TOOD).
+The python code below can also be [downloaded](TOOD).
 
 ## Quality control using Titanlib
 
@@ -50,13 +50,24 @@ Let's start by reading the observations and their station's metadata from the do
 {% highlight python %}
 import titanlib
 import netCDF4
-
-file = netCDF4.Dataset('obs.nc', 'r')
-obs_lats = file.variables['latitude'][:]
-obs_lons = file.variables['longitude'][:]
-obs_elevs = file.variables['altitude'][:]
-obs = file.variables['air_temperature_2m'][:]
-file.close()
+lats = lons = elevs = values = np.array(0)
+with open(filename) as fid:
+    text = fid.read()
+    data = json.loads(text)
+    for item in data["body"]:
+        lon, lat = item["place"]["location"]
+        elev = item["place"]["altitude"]
+        for key, measure in item["measures"].items():
+            if "type" in measure:
+                types = measure["type"]
+                if "temperature" in types:
+                    unixtime = list(measure["res"].keys())[0]
+                    I = types.index("temperature")
+                    value = measure["res"][unixtime][I]
+                    lats = np.append(lats, lat)
+                    lons = np.append(lons, lon)
+                    elevs = np.append(elevs, elev)
+                    values = np.append(values, value)
 {% endhighlight %}
 
 The `obs` variable now contains the observations [in Kelvin] in a 1-D array, with `obs_lats`, `obs_lons`, and `obs_elevs`
@@ -159,7 +170,7 @@ mpl.show()
 
 The SCT has identified one fault observation in the southern part of the domain:
 
-![Result of the quality control]({{ site.url }}/assets/img/titan_sct.png)
+![Result of the quality control]({{ site.url }}/assets/img/netatmo_titan.png)
 
 ## Correcting the weather model
 
@@ -235,7 +246,7 @@ mpl.gca().set_aspect(2)
 mpl.show()
 {% endhighlight %}
 
-![Analysis increment map]({{ site.url }}/assets/img/analysis_increment.png)
+![Analysis increment map]({{ site.url }}/assets/img/netatmo_analysis.png)
 
 ## References
 
