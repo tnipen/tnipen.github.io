@@ -1,19 +1,19 @@
 ---
 layout: post
 title:  "Surface analyses with titanlib and gridpp"
-date:   2020-06-05 15:58:36 +0200
+date:   2020-06-15 10:00:00 +0200
 author: Thomas Nipen (thomasn@met.no)
-tags: optimal_interpolation quality_control software crowdsourced
+tags: optimal_interpolation quality_control
 ---
 
 MET-Norway constructs a gridded analysis every hour based on an NWP background and all observations we can
 get a hold on. This includes conventional weather stations, but also an emerging source of observations:
 citizen weather stations. Specifically, we use observations from [Netatmo](https://netatmo.com)'s network of
 weather stations. This gridded analysis of temperature forms the current conditions shown on the Yr
-(https://www.yr.no) website.
+([https://www.yr.no](https://www.yr.no)) website.
 
-To help create gridded analyses, MET-Norway has built two libraries: titanlib and gridpp. *Titanlib* is
-a quality control library that can flag suspicious observations and *gridpp* is a post-processing library
+To help create gridded analyses, MET-Norway has built two libraries: titanlib and gridpp. **Titanlib** is
+a quality control library that can flag suspicious observations and **gridpp** is a post-processing library
 that can, among other things, assimilate observations into a gridded background field from NWP models. This
 tutorial shows how to integrate observations with an NWP background field. Both libraries are written in C++,
 but they have python interfaces, which will be used here.
@@ -30,12 +30,12 @@ pip3 install gridpp
 You will also need to download two test files: an [observation
 file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); and a [gridded background
 file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which contains a
-single timestep from a 10-member ensemble NWP run.
+single timestep from a 10-member ensemble NWP run. The python code below can also be [downloaded](TOOD).
 
 ## Quality control of observations
 
 The first step is to ensure that the observations we use are trustworthy. Let's start by reading observations
-and their station's metadata from file:
+and their station's metadata from file into arrays:
 
 {% highlight python %}
 import titanlib
@@ -50,14 +50,16 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
 
 Titanlib supports a variety of quality control methods, but we will focus on the spatial consistency test
 (SCT) here. The SCT compares each observations to what is expected given the other observations in the nearby
-area. If the deviation is large, the observation is removed. The SCT has several parameters, which are
-described in detail on the [titanlib wiki](https://github.com/metno/titanlib/wiki/Spatial-consistency-test).
-For a given observation, all other observations within the `outer_radius` (in meters) will be used to compute
-a cross-validation value for the observation. For computational efficiency, the cross-validation results will
-be reused for all observations within the `inner_radius` such that the proceedure doesn't have to be
-performed independently for every observation. To further reduce computation time, only the `num_max` closest
-observations are used, even if there are more than this many observations within the outer radius. The test
-is only performed if there are at least `num_min` observations within the outer radius.
+area. If the deviation is large, the observation is removed.
+
+The SCT has several parameters, which are described in detail on the [titanlib
+wiki](https://github.com/metno/titanlib/wiki/Spatial-consistency-test). For a given observation, all other
+observations within the `outer_radius` (in meters) will be used to compute a cross-validation value for the
+observation. For computational efficiency, the cross-validation results will be reused for all observations
+within the `inner_radius` such that the proceedure doesn't have to be performed independently for every
+observation. To further reduce computation time, only the `num_max` closest observations are used, even if
+there are more than this many observations within the outer radius. The test is only performed if there are at
+least `num_min` observations within the outer radius.
 
 Let's set up the parameters and run the test:
 
@@ -130,15 +132,23 @@ points = gridpp.points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs
 {% endhighlight %}
 
 OI does not require you to specify the error variance of the background and the observations. Instead, only
-their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1. OI
-also requires the background values at the observation points. In many cases a simple method like nearest
-neighbour or bilinear is sufficient, however the gridpp functions allows you to calculate any values if
-desired.
+their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1:
 
 {% highlight python %}
-variance_ratios = 0.1 * np.ones(points.size())
+variance_ratios = np.full(points.size(), 0.1)
+{% endhighlight %}
+
+### Observation operator
+
+OI also requires the background values at the observation points, also called the observation operator. In
+many cases a simple method like nearest neighbour or bilinear is sufficient, however the background could also
+be computed using any method. We will use gridpp's bilinear interpolator:
+
+{% highlight python %}
 pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
+
+### Specifying the structure function
 
 Optimal interpolation needs a structure function. We will use a Barnes function (Barnes 1973), with a horizontal
 decorrelation length of 100 km and a vertical decorrelation length of 200 m. This sets the limits to how far an
@@ -148,6 +158,10 @@ h = 100000
 v = 200
 structure = gridpp.BarnesStructure(h, v)
 {% endhighlight %}
+
+This structure function truncates the correlations past horizontal distances that are 3.64 greater than `h`.
+Note, that this behvariour can be altered by specifing a truncation distance `hmax` in the structure
+function.
 
 When OI processes a gridpoint, it needs to invert a matrix containing all the observations. In areas where
 the observation network is dense, this matrix can be come large and will result in large computation times.
@@ -182,11 +196,13 @@ mpl.show()
 
 ## Ensemble mode
 
-Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al. 2019) scheme that takes
+Gridpp also supports an Ensemble-based Statistical Interpolation (EnSI; Lussana et al. 2019) scheme that
 uses spatial structure information from an ensemble of NWP model runs. This is the method used in the
-operational temperature analyses used on Yr.no, as described by Nipen et al. 2020. To test this, you need to
+operational temperature analyses used on Yr, as described by Nipen et al. 2020. To test this, you need to
 load the full ensemble and ensure that the ensemble dimension is at the end. Also note that EnSI requires the
-specification of the observation variance (`psigmas`).
+standard error of the observation (`psigmas`), which we set to 0.5&deg;C. `psigmas` is a vector, one value for
+each observation, which means different observations can be assigned different standard errors if there is
+reason to believe that the observations have different error statistics.
 
 {% highlight python %}
 with netCDF4.Dataset('analysis.nc', 'r') as file:
@@ -198,7 +214,7 @@ pbackground_ens = np.zeros([points.size(), num_members])
 for e in range(num_members):
     pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens[:, :, e])
 
-psigmas = 0.5 * np.ones(points.size())
+psigmas = np.full(points.size(), 0.5)
 
 analysis_ens = gridpp.optimal_interpolation_ensi(bgrid, background_ens, points,
         obs[index_valid_obs], psigmas, pbackground_ens, structure, max_points)
