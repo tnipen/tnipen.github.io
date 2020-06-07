@@ -6,31 +6,45 @@ author: Thomas Nipen (thomasn@met.no)
 tags: optimal_interpolation quality_control
 ---
 
-MET-Norway constructs a gridded analysis every hour based on an NWP background and all observations we can
-get a hold on. This includes conventional weather stations, but also an emerging source of observations:
-citizen weather stations. Specifically, we use observations from [Netatmo](https://netatmo.com)'s network of
-weather stations. This gridded analysis of temperature forms the current conditions shown on the Yr
-([https://www.yr.no](https://www.yr.no)) website.
+MET Norway produces gridded surface analyses every hour, which are used to show current condtions on
+MET Norway's weather site Yr ([https://www.yr.no](https://www.yr.no)); These analyses are created by
+combining gridded output from a high resolution numerical weather prediction (NWP) model with observations
+from in-situ weather stations, using optimal interpolation (OI). Currently 2 m temperature and hourly
+precipitation are produced.
 
-To help create gridded analyses, MET-Norway has built two libraries: titanlib and gridpp. **Titanlib** is
-a quality control library that can flag suspicious observations and **gridpp** is a post-processing library
-that can, among other things, assimilate observations into a gridded background field from NWP models. This
-tutorial shows how to integrate observations with an NWP background field. Both libraries are written in C++,
-but they have python interfaces, which will be used here.
+The analyses are produced using two open-source software packages, developed at MET Norway. **Titanlib** is
+a quality control library that flags suspicious observations and **gridpp** is a post-processing library that
+can, among other things, assimilate observations into a gridded background field from NWP models. Both were
+designed around the need to integrate larger amounts of observations, with the rapid emergence of
+crowdsourced weather observations, such as personal weather stations from [Netatmo](https://netatmo.com).
+
+Both libraries are written in C++, but they also have python interfaces (and in the future R interfaces).
+This post gives a step-by-step guide for creating surface analyses of temperature using titanlib and gridpp
+in python.
 
 ## Getting started
 First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp),
-which if you already have their dependencies could be as easy as:
+which could be as easy as running:
 
 {% highlight bash %}
 pip3 install titanlib
 pip3 install gridpp
 {% endhighlight %}
 
-You will also need to download two test files: an [observation
-file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); and a [gridded background
-file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc), which contains a
-single timestep from a 10-member ensemble NWP run. The python code below can also be [downloaded](TOOD).
+... if you already have their non-python dependencies. If not, check out their respective webpages for
+installation instructions. You will also need to download two test files: an [observation
+file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); a 2.5 km resolution
+[gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc),
+which contains a single timestep from a 10-member ensemble NWP run; and a 1 km resolution [template
+file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) containing the altitude
+field of the final gridded analysis. The python code below can also be [downloaded]({{ site.url }}/assets/scripts/surface_analysis.py).
+
+Type  | Filename | Size |
+:-----|:-------- |:-----|
+Observations | [obs.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) | 9.3 KB
+Ensemble background | [analysis.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc) | 110 MB
+Output template | [template.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) | 45 MB
+Python code | [surface_analysis.py]({{ site.url }}/assets/scripts/surface_analysis.py) | 4.3 KB
 
 ## Quality control of observations
 
@@ -40,12 +54,13 @@ and their station's metadata from file into arrays:
 {% highlight python %}
 import titanlib
 import netCDF4
+import numpy as np
 
 with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_lats = file.variables['latitude'][:]
     obs_lons = file.variables['longitude'][:]
     obs_elevs = file.variables['altitude'][:]
-    obs = file.variables['air_temperature_2m'][:]
+    obs = file.variables['air_temperature_2m'][:, 0]
 {% endhighlight %}
 
 Titanlib supports a variety of quality control methods, but we will focus on the spatial consistency test
@@ -77,7 +92,9 @@ t2pos = np.full(len(obs), 4)
 t2neg = np.full(len(obs), 4)
 eps2 = np.full(len(obs), 0.5)
 
-flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, num_min, num_max, inner_radius, outer_radius, num_iterations, num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
+flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs,
+        num_min, num_max, inner_radius, outer_radius, num_iterations,
+        num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
 {% endhighlight %}
 
 The `flags` array now has the same length as the input observations and uses a value of `0` denoting
@@ -94,9 +111,9 @@ Let's plot the observations, marking flagged ones with a black edge:
 {% highlight python %}
 import matplotlib.pylab as mpl
 mpl.scatter(obs_lons[index_valid_obs], obs_lats[index_valid_obs],
-        c=obs[index_valid_obs] - 273.15, s=20, cmap="RdBu_r")
+        c=obs[index_valid_obs] - 273.15, s=50, linewidths=0, cmap="RdBu_r")
 mpl.scatter(obs_lons[index_invalid_obs], obs_lats[index_invalid_obs],
-        c=obs[index_invalid_obs] - 273.15, s=20, edgecolors="k", cmap="RdBu_r")
+        c=obs[index_invalid_obs] - 273.15, s=50, edgecolors="r", linewidths=1.5, cmap="RdBu_r")
 mpl.xlim(0, 35)
 mpl.ylim(55, 75)
 mpl.gca().set_aspect(2)
@@ -113,8 +130,11 @@ The SCT has identified one fault observation in the southern part of the domain:
 
 Once we have a set of trustworth observations, we can assimilate those into the NWP background. Gridpp
 provides a function that performs optimal interpolation (OI), which merges a background field and a set of
-observations, based on their relative accuracies. We will first use the deterministic OI scheme, which takes
-a single ensemble member. We will take the control member, which has index 0 in the background file.
+observations, based on their relative accuracies.
+
+Let's start by reading in the data from the NWP data file, and the 1 km output template. We will first use
+the deterministic OI scheme, which takes a single ensemble member and for this we will take the control
+member, which has index 0 in the background file.
 
 {% highlight python %}
 import gridpp
@@ -122,21 +142,34 @@ import numpy as np
 
 with netCDF4.Dataset('analysis.nc', 'r') as file:
     index_control = 0
+    blats_2500m = file.variables['latitude'][:]
+    blons_2500m = file.variables['longitude'][:]
+    belevs_2500m = file.variables['surface_geopotential'][0, 0, index_control, :, :] / 9.81
+    bgrid_2500m = gridpp.Grid(blats_2500m, blons_2500m, belevs_2500m)
+    background_2500m = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
+
+with netCDF4.Dataset('template.nc', 'r') as file:
     blats = file.variables['latitude'][:]
     blons = file.variables['longitude'][:]
-    belevs = file.variables['surface_geopotential'][0, 0, index_control, :, :] / 9.81
+    belevs = file.variables['altiude'][:]
     bgrid = gridpp.Grid(blats, blons, belevs)
-    background = file.variables['air_temperature_2m'][0, 0, index_control, :, :]
-
-points = gridpp.points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
 {% endhighlight %}
 
-OI does not require you to specify the error variance of the background and the observations. Instead, only
-their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1:
+`bgrid_2500m` and `bgrid` are objects that encapsulate the grid definitions.
+
+### Downscaling to 1 km
+
+The background has 2.5 km grid spacing. To downscale to 1 km, we do a height correction. Operationally, we
+use a dynamic elevation gradient, but here we will use a constant -0.0065&deg;C/m elevation gradient. Gridpp
+provides a method that does this downscaling, by taking the grid definitions, the original background field,
+and the desired elevation gradient as arguments:
 
 {% highlight python %}
-variance_ratios = np.full(points.size(), 0.1)
+gradient = -0.0065
+background = gridpp.simple_gradient(bgrid_2500m, bgrid, background_2500m, gradient)
 {% endhighlight %}
+
+This yields a 1 km gridded field stored in `background`.
 
 ### Observation operator
 
@@ -145,8 +178,23 @@ many cases a simple method like nearest neighbour or bilinear is sufficient, how
 be computed using any method. We will use gridpp's bilinear interpolator:
 
 {% highlight python %}
+points = gridpp.Points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
 pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
+
+`gridpp.Points` creates an object that stores that encapsulates the point metadata (just like `gridpp.Grid`
+does for a grid).
+
+OI does not require you to specify the error variance of the background and the observations, only
+their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1:
+
+{% highlight python %}
+variance_ratios = np.full(points.size(), 0.1)
+{% endhighlight %}
+
+`variance_ratios` is a vector, one value for each observation, which means different observations can be
+assigned different variance ratios if there is reason to believe that the observations have different error
+statistics.
 
 ### Specifying the structure function
 
@@ -163,14 +211,22 @@ This structure function truncates the correlations past horizontal distances tha
 Note, that this behvariour can be altered by specifing a truncation distance `hmax` in the structure
 function.
 
-When OI processes a gridpoint, it needs to invert a matrix containing all the observations. In areas where
-the observation network is dense, this matrix can be come large and will result in large computation times.
-However, in most cases reducing the number of observations doesn't negatively impact the accuracy of the
-analysis. We can set this using the `max_points` argument:
+Currently, gridpp also supports a Cressman structure function, which uses a linear decorrelation function
+instead of an exponential. We aim to include further structure functions in the future.
+
+### Running the OI
+
+When OI processes a gridpoint, it needs to invert a matrix containing all the observations within the
+influence radius. In areas where the observation network is dense, this matrix can be come large and will
+result in large computation times. However, in most cases reducing the number of observations doesn't
+negatively impact the accuracy of the analysis. We can set this using the `max_points` argument:
 
 {% highlight python %}
-max_points = 10
+max_points = 50
 {% endhighlight %}
+
+Note that this setting isn't important in this example with only 75 observations, but when including Netatmo
+observations, this is critical.
 
 Now we have defined all the required inputs and we can create a gridded analysis:
 {% highlight python %}
@@ -206,13 +262,14 @@ reason to believe that the observations have different error statistics.
 
 {% highlight python %}
 with netCDF4.Dataset('analysis.nc', 'r') as file:
-    background_ens = file.variables['air_temperature_2m'][0, 0, :, :, :]
-    background_ens = np.moveaxis(background_ens, 0, 2)
+    background_ens_2500m = file.variables['air_temperature_2m'][0, 0, :, :, :]
+    background_ens_2500m = np.moveaxis(background_ens_2500m, 0, 2)
 
-num_members = background_ens.shape[2]
+num_members = background_ens_2500m.shape[2]
 pbackground_ens = np.zeros([points.size(), num_members])
 for e in range(num_members):
-    pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens[:, :, e])
+    background_ens = gridpp.simple_gradient(bgrid_2500m, bgrid, background_ens_2500m[:, :, e], gradient)
+    pbackground_ens[:, e] = gridpp.bilinear(bgrid, points, background_ens)
 
 psigmas = np.full(points.size(), 0.5)
 
@@ -222,6 +279,26 @@ diff = (analysis_ens - background_ens)[:, :, index_control]
 {% endhighlight %}
 
 ![Analysis increment map for ensemble]({{ site.url }}/assets/img/analysis_increment_ens.png)
+
+## Further work
+
+We have serveral features we want to implement. First of all, the OI presented here assumes Gaussian error
+characteristics. For non-Gaussian variables, such as wind and precipitation, we will support the
+transformation of the variable.
+
+We also hope to support other structure functions. Gridpp can support structure functions that can provide a
+correlation function like this (in C++):
+
+{% highlight c++ %}
+float corr(const Point& p1, const Point& p2)
+{% endhighlight %}
+
+where `p1` and `p2` are points described by latitude, longitude, altitude, and land area fraction, and that
+can use any arguments passed in the initialization of the class (such as `h`, `v`,`hmax` for `BarnesStructure`).
+
+Finally, and improvement to the ensemble OI scheme presented here (EnSI) will be included that better handles
+variables such as precipitation, where the ensemble variance often is 0, when all members have no
+precipitation.
 
 ## References
 
