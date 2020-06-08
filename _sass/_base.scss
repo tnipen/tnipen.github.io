@@ -1,3 +1,18 @@
+$brand-color:           #828282 !default;
+$brand-color-light:     lighten($brand-color, 40%) !default;
+$brand-color-dark:      darken($brand-color, 25%) !default;
+$table-text-align: left !default;
+
+$border-color-01:       $grey-color-light !default;
+$border-color-02:       lighten($grey-color, 35%) !default;
+$border-color-03:       $grey-color-dark !default;
+
+$table-text-color:      lighten($text-color, 18%) !default;
+$table-zebra-color:     lighten($grey-color, 46%) !default;
+$table-header-bg-color: lighten($grey-color, 43%) !default;
+$table-header-border:   lighten($grey-color, 37%) !default;
+$table-border-color:    $border-color-01 !default;
+
 /**
  * Reset some basic elements
  */
@@ -209,20 +224,36 @@ pre {
     }
 }
 
+/**
+ * Tables
+ */
 table {
+  margin-bottom: $spacing-unit;
+  width: 100%;
+  text-align: $table-text-align;
+  color: $table-text-color;
   border-collapse: collapse;
-  border-spacing: 0;
-      border:2px solid #ff0000;
-
-}
-
-td {
-
-  padding: 0;
-      border:1px solid #000000;
+  border: 1px solid $table-border-color;
+  tr {
+    &:nth-child(even) {
+      background-color: $table-zebra-color;
+    }
   }
-th {
-  padding: 0;
-      border:2px solid #000000;
+  th, td {
+    padding: ($spacing-unit / 3) ($spacing-unit / 2);
+  }
+  th {
+    background-color: $table-header-bg-color;
+    border: 1px solid $table-header-border;
+  }
+  td {
+    border: 1px solid $table-border-color;
+  }
 
+  @include media-query($on-laptop) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+            -ms-overflow-style: -ms-autohiding-scrollbar;
+  }
 }

@@ -32,12 +32,7 @@ pip3 install gridpp
 {% endhighlight %}
 
 ... if you already have their non-python dependencies. If not, check out their respective webpages for
-installation instructions. You will also need to download two test files: an [observation
-file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc); a 2.5 km resolution
-[gridded background file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc),
-which contains a single timestep from a 10-member ensemble NWP run; and a 1 km resolution [template
-file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) containing the altitude
-field of the final gridded analysis. The python code below can also be [downloaded]({{ site.url }}/assets/scripts/surface_analysis.py).
+installation instructions. You will also need to download the following four files:
 
 Type | Filename | Size
 --- | --- |---
@@ -45,6 +40,8 @@ Observations | [obs.nc](https://thredds.met.no//thredds/fileServer/metusers/thom
 Ensemble background | [analysis.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc) | 110 MB
 Output template | [template.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) | 45 MB
 Python code | [surface_analysis.py]({{ site.url }}/assets/scripts/surface_analysis.py) | 4.3 KB
+
+The python code is a collection of all code shown on this page.
 
 ## Quality control of observations
 
