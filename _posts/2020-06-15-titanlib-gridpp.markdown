@@ -123,7 +123,8 @@ cb.set_label(r"Temperature ($\degree C$)")
 mpl.show()
 {% endhighlight %}
 
-The SCT has identified one fault observation in the southern part of the domain:
+The SCT has identified two faulty observation in the southern part of the domain (shown by a red line
+surrounding the marker):
 
 ![Result of the quality control]({{ site.url }}/assets/img/titan_sct.png)
 
@@ -235,7 +236,7 @@ analysis = gridpp.optimal_interpolation(bgrid, background, points,
         obs[index_valid_obs], variance_ratios, pbackground, structure, max_points)
 {% endhighlight %}
 
-## Plotting the result
+### Plotting analysis increments
 
 Finally, we can plot the analysis increments:
 {% highlight python %}
