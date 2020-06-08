@@ -240,8 +240,6 @@ analysis = gridpp.optimal_interpolation(bgrid, background, points,
 
 Finally, we can plot the analysis increments:
 {% highlight python %}
-import matplotlib.pylab as mpl
-
 diff = analysis - background
 mpl.pcolormesh(blons, blats, diff, cmap="RdBu_r", vmin=-2, vmax=2)
 mpl.xlim(0, 35)
@@ -298,9 +296,8 @@ float corr(const Point& p1, const Point& p2)
 where `p1` and `p2` are points described by latitude, longitude, altitude, and land area fraction, and that
 can use any arguments passed in the initialization of the class (such as `h`, `v`,`hmax` for `BarnesStructure`).
 
-Finally, and improvement to the ensemble OI scheme presented here (EnSI) will be included that better handles
-variables such as precipitation, where the ensemble variance often is 0, when all members have no
-precipitation.
+Finally, we plan to include an improvement to the EnSI scheme, which better handles variables such as
+precipitation, where the ensemble variance often is 0, when all members have no precipitation.
 
 ## References
 

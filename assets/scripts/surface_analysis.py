@@ -76,7 +76,7 @@ variance_ratios = np.full(points.size(), 0.1)
 
 h = 100000
 v = 200
-structure = gridpp.BarnesStructure(h, v, 0, 500000)
+structure = gridpp.BarnesStructure(h, v)
 
 max_points = 50
 
@@ -85,8 +85,6 @@ analysis = gridpp.optimal_interpolation(bgrid, background, points,
 
 
 # Plotting the increments
-import matplotlib.pylab as mpl
-
 diff = analysis - background
 mpl.pcolormesh(blons, blats, diff, cmap="RdBu_r", vmin=-2, vmax=2)
 mpl.xlim(0, 35)
