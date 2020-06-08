@@ -39,8 +39,8 @@ which contains a single timestep from a 10-member ensemble NWP run; and a 1 km r
 file](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) containing the altitude
 field of the final gridded analysis. The python code below can also be [downloaded]({{ site.url }}/assets/scripts/surface_analysis.py).
 
-Type  | Filename | Size |
-:-----|:-------- |:-----|
+Type | Filename | Size
+--- | --- |---
 Observations | [obs.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/obs.nc) | 9.3 KB
 Ensemble background | [analysis.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/analysis.nc) | 110 MB
 Output template | [template.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) | 45 MB

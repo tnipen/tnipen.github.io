@@ -208,3 +208,21 @@ pre {
         }
     }
 }
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+      border:2px solid #ff0000;
+
+}
+
+td {
+
+  padding: 0;
+      border:1px solid #000000;
+  }
+th {
+  padding: 0;
+      border:2px solid #000000;
+
+}
