@@ -60,6 +60,8 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs = file.variables['air_temperature_2m'][:, 0]
 {% endhighlight %}
 
+### Spatial constistency test
+
 Titanlib supports a variety of quality control methods, but we will focus on the spatial consistency test
 (SCT) here. The SCT compares each observations to what is expected given the other observations in the nearby
 area. If the deviation is large, the observation is removed.
@@ -102,6 +104,8 @@ non-flagged observations in the next step:
 index_valid_obs = np.where(flags == 0)[0]
 index_invalid_obs = np.where(flags != 0)[0]
 {% endhighlight %}
+
+### Plotting the QC flags
 
 Let's plot the observations, marking flagged ones with a black edge:
 
