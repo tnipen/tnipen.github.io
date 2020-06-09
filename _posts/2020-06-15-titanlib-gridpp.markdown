@@ -6,19 +6,22 @@ author: Thomas Nipen (thomasn@met.no)
 tags: optimal_interpolation quality_control
 ---
 
-MET Norway produces gridded surface analyses every hour, which are used to show current condtions on
-MET Norway's weather site Yr ([https://www.yr.no](https://www.yr.no)); These analyses are created by
-combining gridded output from a high resolution numerical weather prediction (NWP) model with observations
-from in-situ weather stations, using optimal interpolation (OI). Currently 2 m temperature and hourly
-precipitation are produced.
+MET Norway produces gridded surface analyses every hour, which are used as input data to the current
+condtions on MET Norway's weather site Yr ([https://www.yr.no](https://www.yr.no)). These analyses are
+created by combining gridded output from a high resolution numerical weather prediction (NWP) model and
+observations from in-situ weather stations, using optimal interpolation (OI). Currently 2 m temperature and
+hourly precipitation are produced.
 
-The analyses are produced using two open-source software packages, developed at MET Norway. **Titanlib** is
-a quality control library that flags suspicious observations and **gridpp** is a post-processing library that
-can, among other things, assimilate observations into a gridded background field from NWP models. Both were
-designed around the need to integrate larger amounts of observations, with the rapid emergence of
-crowdsourced weather observations, such as personal weather stations from [Netatmo](https://netatmo.com).
+![Example surface analysis]({{ site.url }}/assets/img/analysis_zoom.png)
 
-Both libraries are written in C++, but they also have python interfaces (and in the future R interfaces).
+These analyses are produced using two open-source software packages developed at MET Norway.
+**Titanlib** is a quality control library that flags suspicious observations and **gridpp** is a
+post-processing library that, among other things, assimilates observations into gridded background fields
+from NWP models. Both packages are designed to support the operational use of large amounts of crowdsourced
+weather observations, such as personal weather stations from [Netatmo](https://netatmo.com), which is a
+rapidly growing source of weather information.
+
+The libraries are written in C++, but they also have python interfaces (and in the future R interfaces).
 This post gives a step-by-step guide for creating surface analyses of temperature using titanlib and gridpp
 in python.
 
@@ -45,7 +48,8 @@ The python code is a collection of all code shown on this page.
 
 ## Quality control of observations
 
-The first step is to ensure that the observations we use are trustworthy. Let's start by reading observations
+The first step is to ensure that only trustworthy observations are used, as erronerous observations can lead
+to large errors in the final analysis. For this we will use titanlib, but let's start by reading observations
 and their station's metadata from file into arrays:
 
 {% highlight python %}
@@ -59,6 +63,10 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_elevs = file.variables['altitude'][:]
     obs = file.variables['air_temperature_2m'][:, 0]
 {% endhighlight %}
+
+The `obs` variable now contains the observations [in Kelvin] in a 1-D array, with `obs_lats`, `obs_lons`, and
+`obs_elevs` being corresponding 1-D arrays of the stations' latitudes [degrees], longitudes [degrees], and
+elevations [m], respectively.
 
 ### Spatial constistency test
 
@@ -96,9 +104,9 @@ flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs,
         num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
 {% endhighlight %}
 
-The `flags` array now has the same length as the input observations and uses a value of `0` denoting
-observations that passed the test and a value of `1` for those that are flagged. We will only keep the
-non-flagged observations in the next step:
+The SCT function returns an array of `flags` with the same length as the input observations. A value of `0`
+denotes observations that passed the test and a value of `1` denotes those that are flagged. Let's create
+arrays that keep track of which observations are valid and invalid:
 
 {% highlight python %}
 index_valid_obs = np.where(flags == 0)[0]
@@ -107,7 +115,7 @@ index_invalid_obs = np.where(flags != 0)[0]
 
 ### Plotting the QC flags
 
-Let's plot the observations, marking flagged ones with a black edge:
+We can plot the observations, marking flagged ones with a black edge as follows:
 
 {% highlight python %}
 import matplotlib.pylab as mpl
@@ -161,10 +169,10 @@ with netCDF4.Dataset('template.nc', 'r') as file:
 
 ### Downscaling to 1 km
 
-The background has 2.5 km grid spacing. To downscale to 1 km, we do a height correction. Operationally, we
-use a dynamic elevation gradient, but here we will use a constant -0.0065&deg;C/m elevation gradient. Gridpp
-provides a method that does this downscaling, by taking the grid definitions, the original background field,
-and the desired elevation gradient as arguments:
+The background has 2.5 km grid spacing. To downscale to 1 km, we do a height correction. Operationally at MET
+Norway, we use a dynamic elevation gradient, but here we will use a constant -0.0065&deg;C/m elevation
+gradient. Gridpp provides a method that does this downscaling, by taking the grid definitions, the original
+background field, and the desired elevation gradient as arguments:
 
 {% highlight python %}
 gradient = -0.0065
@@ -176,8 +184,8 @@ This yields a 1 km gridded field stored in `background`.
 ### Observation operator
 
 OI also requires the background values at the observation points, also called the observation operator. In
-many cases a simple method like nearest neighbour or bilinear is sufficient, however the background could also
-be computed using any method. We will use gridpp's bilinear interpolator:
+many cases a simple method like nearest neighbour or bilinear is sufficient, however you could also
+compute the background in any otherway without gridpp. We will use gridpp's bilinear interpolator:
 
 {% highlight python %}
 points = gridpp.Points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
@@ -185,7 +193,7 @@ pbackground = gridpp.bilinear(grid, points, background)
 {% endhighlight %}
 
 `gridpp.Points` creates an object that stores that encapsulates the point metadata (just like `gridpp.Grid`
-does for a grid).
+does for a grid). `pbackground` is a vector with the model background at the observation points.
 
 OI does not require you to specify the error variance of the background and the observations, only
 their ratios is needed. Since we trust observations more than the background, we set the ratio to 0.1:
@@ -195,7 +203,7 @@ variance_ratios = np.full(points.size(), 0.1)
 {% endhighlight %}
 
 `variance_ratios` is a vector, one value for each observation, which means different observations can be
-assigned different variance ratios if there is reason to believe that the observations have different error
+assigned different variance ratios if there is reason to believe that observations have different error
 statistics.
 
 ### Specifying the structure function
@@ -210,7 +218,7 @@ structure = gridpp.BarnesStructure(h, v)
 {% endhighlight %}
 
 This structure function truncates the correlations past horizontal distances that are 3.64 greater than `h`.
-Note, that this behvariour can be altered by specifing a truncation distance `hmax` in the structure
+Note, that this behvariour can be altered by specifing a different truncation distance `hmax` in the structure
 function.
 
 Currently, gridpp also supports a Cressman structure function, which uses a linear decorrelation function
