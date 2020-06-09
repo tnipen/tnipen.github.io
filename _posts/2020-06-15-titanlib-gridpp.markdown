@@ -2,7 +2,7 @@
 layout: post
 title:  "Surface analyses with titanlib and gridpp"
 date:   2020-06-15 10:00:00 +0200
-author: Thomas Nipen (thomasn@met.no)
+author: Thomas Nipen (thomasn@met.no), Cristian Lussana, Ivar Seierstand, and Trygve Aspelien
 tags: optimal_interpolation quality_control
 ---
 
