@@ -181,6 +181,7 @@ pre {
     padding-right: $spacing-unit;
     padding-left: $spacing-unit;
     background-color: #ffffff;
+    box-shadow: 5px 0px 5px $grey-color;
     @extend %clearfix;
 
     @include media-query($on-laptop) {
