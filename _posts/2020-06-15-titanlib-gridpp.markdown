@@ -26,8 +26,8 @@ This post gives a step-by-step guide for creating surface analyses of temperatur
 in python.
 
 ## Getting started
-First install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp),
-which could be as easy as running:
+First, install [titanlib](https://github.com/metno/titanlib) and [gridpp](https://github.com/metno/gridpp)
+python packages, which could be as easy as running the following commands:
 
 {% highlight bash %}
 pip3 install titanlib
@@ -120,9 +120,10 @@ We can plot the observations, marking flagged ones with a black edge as follows:
 {% highlight python %}
 import matplotlib.pylab as mpl
 mpl.scatter(obs_lons[index_valid_obs], obs_lats[index_valid_obs],
-        c=obs[index_valid_obs] - 273.15, s=50, linewidths=0, cmap="RdBu_r")
+        c=obs[index_valid_obs] - 273.15, s=50, linewidths=0, cmap="RdBu_r", vmin=5, vmax=20)
 mpl.scatter(obs_lons[index_invalid_obs], obs_lats[index_invalid_obs],
-        c=obs[index_invalid_obs] - 273.15, s=50, edgecolors="r", linewidths=1.5, cmap="RdBu_r")
+        c=obs[index_invalid_obs] - 273.15, s=50, edgecolors="r", linewidths=1.5, cmap="RdBu_r",
+        vmin=5, vmax=20)
 mpl.xlim(0, 35)
 mpl.ylim(55, 75)
 mpl.gca().set_aspect(2)
