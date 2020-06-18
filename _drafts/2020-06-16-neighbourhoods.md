@@ -12,3 +12,6 @@ variance = E[x^2] - E[x]^2
 That is, the variance is efficiently compute by calculating two types of neighbourhood means and taking the difference.
 
 To find the neighbourhood **minimum** or **maximum**, the domain is split into Nx1 slices. A neighbourhood is then represented by R of these Rx1 slices. The minimum (maximum) is computed for each slice, and then a minimum (maximum) of R of the Rx1 slices is computed. This saves time because the Nx1 minimums (maximums) are reused R times. This algorithm has time complexity O(GRlog(R)).
+
+To find a neighbourhood **quantile** (such as the median), there is no way to reuse the calculations from one neighbourhood when processing the next. This is because the whole neighbourhood must be sorted. Instead, gridpp uses a method that gives an approximate value. Gridpp computes the fraction of cells that exceed a set of T thresholds. The quantile can then be approximated by linearly interpolating between these fractions. Gridpp can also compute the exact neighbourhood quantile, without approximation if desired. This has time complexity O(GT). [Brute force].
+
