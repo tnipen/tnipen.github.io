@@ -44,7 +44,7 @@ Ensemble background | [analysis.nc](https://thredds.met.no//thredds/fileServer/m
 Output template | [template.nc](https://thredds.met.no//thredds/fileServer/metusers/thomasn/gridpp/template.nc) | 45 MB
 Python code | [surface_analysis.py]({{ site.url }}/assets/scripts/surface_analysis.py) | 4.3 KB
 
-The python code is a collection of all code shown on this page.
+The python code contains all of the code shown on this page and can be run to produce the figures below.
 
 ## Quality control of observations
 
@@ -190,7 +190,7 @@ compute the background in any otherway without gridpp. We will use gridpp's bili
 
 {% highlight python %}
 points = gridpp.Points(obs_lats[index_valid_obs], obs_lons[index_valid_obs], obs_elevs[index_valid_obs])
-pbackground = gridpp.bilinear(grid, points, background)
+pbackground = gridpp.bilinear(bgrid, points, background)
 {% endhighlight %}
 
 `gridpp.Points` creates an object that stores that encapsulates the point metadata (just like `gridpp.Grid`
