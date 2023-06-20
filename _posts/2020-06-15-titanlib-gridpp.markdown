@@ -60,16 +60,17 @@ import netCDF4
 import numpy as np
 
 with netCDF4.Dataset('obs.nc', 'r') as file:
+    obs = file.variables['air_temperature_2m'][:, 0]
     obs_lats = file.variables['latitude'][:]
     obs_lons = file.variables['longitude'][:]
     obs_elevs = file.variables['altitude'][:]
     points = titanlib.Points(obs_lats, obs_lons, obs_elevs)
-    obs = file.variables['air_temperature_2m'][:, 0]
 {% endhighlight %}
 
-The `obs` variable now contains the observations [in Kelvin] in a 1-D array, with `obs_lats`, `obs_lons`, and
-`obs_elevs` being corresponding 1-D arrays of the stations' latitudes [degrees], longitudes [degrees], and
-elevations [m], respectively.
+The `obs` variable now contains the observations [in Kelvin] in a 1-D arrays. `obs_lats`, `obs_lons`, and
+`obs_elevs` are corresponding 1-D arrays of the stations' latitudes [degrees], longitudes [degrees], and
+elevations [m], respectively. These are used to create the `points` object, which is a tree-like structure that allows for
+fast nearest neighbour lookup.
 
 ### Spatial constistency test
 
