@@ -6,6 +6,8 @@ author: Thomas Nipen (thomasn@met.no), Cristian Lussana, Ivar Seierstand, and Tr
 tags: optimal_interpolation quality_control
 ---
 
+NOTE: Updated 2023-06-20 to reflect API changes in titanlib.
+
 MET Norway produces gridded surface analyses every hour, which are used as input data to the current
 condtions on MET Norway's weather site Yr ([https://www.yr.no](https://www.yr.no)). These analyses are
 created by combining gridded output from a high resolution numerical weather prediction (NWP) model and
@@ -61,6 +63,7 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_lats = file.variables['latitude'][:]
     obs_lons = file.variables['longitude'][:]
     obs_elevs = file.variables['altitude'][:]
+    points = titanlib.Points(obs_lats, obs_lons, obs_elevs)
     obs = file.variables['air_temperature_2m'][:, 0]
 {% endhighlight %}
 
@@ -99,7 +102,7 @@ t2pos = np.full(len(obs), 4)
 t2neg = np.full(len(obs), 4)
 eps2 = np.full(len(obs), 0.5)
 
-flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs,
+flags, sct, rep = titanlib.sct(points, obs,
         num_min, num_max, inner_radius, outer_radius, num_iterations,
         num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
 {% endhighlight %}

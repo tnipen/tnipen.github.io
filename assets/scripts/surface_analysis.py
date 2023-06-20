@@ -7,6 +7,7 @@ with netCDF4.Dataset('obs.nc', 'r') as file:
     obs_lats = file.variables['latitude'][:]
     obs_lons = file.variables['longitude'][:]
     obs_elevs = file.variables['altitude'][:]
+    points = titanlib.Points(obs_lats, obs_lons, obs_elevs)
     obs = file.variables['air_temperature_2m'][:, 0]
 
 # SCT settings
@@ -25,8 +26,9 @@ eps2 = np.full([len(obs)], 0.5)
 print(t2pos.shape)
 
 # Run the SCT
-flags, sct, rep = titanlib.sct(obs_lats, obs_lons, obs_elevs, obs, num_min, num_max, inner_radius,
-        outer_radius, num_iterations, num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
+flags, sct, rep = titanlib.sct(points, obs,
+        num_min, num_max, inner_radius, outer_radius, num_iterations,
+        num_min_prof, dzmin, dhmin , dz, t2pos, t2neg, eps2)
 
 index_valid_obs = np.where(flags == 0)[0]
 index_invalid_obs = np.where(flags != 0)[0]
