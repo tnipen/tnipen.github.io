@@ -6,7 +6,7 @@ author: Thomas Nipen (thomasn@met.no), Cristian Lussana, Ivar Seierstand, and Tr
 tags: optimal_interpolation quality_control
 ---
 
-NOTE: Updated 2023-06-20 to reflect API changes in titanlib.
+*NOTE: Updated 2023-06-20 to reflect API changes in titanlib.*
 
 MET Norway produces gridded surface analyses every hour, which are used as input data to the current
 condtions on MET Norway's weather site Yr ([https://www.yr.no](https://www.yr.no)). These analyses are
